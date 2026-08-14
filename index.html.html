@@ -690,7 +690,9 @@
                 </div>
                 <div class="form-group">
                     <label>座號</label>
-                    <input type="text" id="studentNumber" placeholder="例如：15">
+                    <select id="studentNumber">
+                        <option value="">請選擇座號</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>姓名</label>
@@ -858,6 +860,27 @@
             '八年級': ['1', '2', '3', '4']
         };
 
+        // 座號選項：1-13 號和 21-36 號
+        const seatNumbers = [];
+        for (let i = 1; i <= 13; i++) {
+            seatNumbers.push(i.toString());
+        }
+        for (let i = 21; i <= 36; i++) {
+            seatNumbers.push(i.toString());
+        }
+
+        // 初始化座號選項
+        function initSeatNumbers() {
+            const seatSelect = document.getElementById('studentNumber');
+            seatSelect.innerHTML = '<option value="">請選擇座號</option>';
+            seatNumbers.forEach(num => {
+                const option = document.createElement('option');
+                option.value = num;
+                option.textContent = num + '號';
+                seatSelect.appendChild(option);
+            });
+        }
+
         // 年級變更時更新班級選項
         document.getElementById('studentGrade').addEventListener('change', function() {
             const grade = this.value;
@@ -873,6 +896,9 @@
                 });
             }
         });
+
+        // 初始化座號
+        initSeatNumbers();
 
         selectionsRef.on('value', (snapshot) => {
             const data = snapshot.val();
@@ -1178,7 +1204,7 @@
                 row.innerHTML = `
                     <td>${selection.grade}</td>
                     <td>${selection.class}班</td>
-                    <td>${selection.number}</td>
+                    <td>${selection.number}號</td>
                     <td>${selection.name}</td>
                     <td>${selection.clubName}</td>
                     <td>${selection.timestamp}</td>
@@ -1217,7 +1243,7 @@
             const data = selections.map(s => ({
                 '年級': s.grade,
                 '班級': s.class + '班',
-                '座號': s.number,
+                '座號': s.number + '號',
                 '姓名': s.name,
                 '選擇社團': s.clubName,
                 '選課時間': s.timestamp
