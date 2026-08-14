@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>山腳國中社團選課系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #A8D5BA 0%, #B8E6D5 50%, #C1E8D8 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 15px 50px rgba(168, 213, 186, 0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #7FB069 0%, #9BC58A 100%);
+            color: white;
+            padding: 35px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '🌿';
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 3em;
+            opacity: 0.3;
+        }
+
+        .header::after {
+            content: '🍃';
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 3em;
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .login-form {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 35px;
+            background: linear-gradient(135deg, #F0F7F4 0%, #E8F5E9 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(127, 176, 105, 0.2);
+            border: 3px solid #C8E6C9;
+        }
+
+        .login-form h2 {
+            text-align: center;
+            color: #7FB069;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #558B2F;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #C8E6C9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #7FB069;
+            box-shadow: 0 0 15px rgba(127, 176, 105, 0.3);
+        }
+
+        .form-group select {
+            cursor: pointer;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #7FB069 0%, #9BC58A 100%);
+            color: white;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 15px;
+            font-size: 17px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(127, 176, 105, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(127, 176, 105, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #A5D6A7 0%, #C8E6C9 100%);
+            margin-top: 12px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #EF9A9A 0%, #F48FB1 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #81C784 0%, #A5D6A7 100%);
+        }
+
+        .club-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .club-card {
+            background: white;
+            border: 3px solid #C8E6C9;
+            border-radius: 20px;
+            padding: 25px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .club-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #7FB069, #9BC58A, #A5D6A7);
+        }
+
+        .club-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(127, 176, 105, 0.3);
+            border-color: #7FB069;
+        }
+
+        .club-card.selected {
+            border-color: #4DB6AC;
+            background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%);
+        }
+
+        .club-card.full, .club-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .club-card.disabled {
+            background: #F5F5F5;
+            pointer-events: none;
+        }
+
+        .club-icon {
+            font-size: 3.5em;
+            text-align: center;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .club-name {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #558B2F;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .club-capacity {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .capacity-bar {
+            flex: 1;
+            height: 12px;
+            background: #E8F5E9;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-right: 12px;
+            border: 2px solid #C8E6C9;
+        }
+
+        .capacity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7FB069 0%, #9BC58A 100%);
+            transition: width 0.4s;
+            border-radius: 10px;
+        }
+
+        .capacity-fill.near-full {
+            background: linear-gradient(90deg, #FFB74D 0%, #FFA726 100%);
+        }
+
+        .capacity-text {
+            font-weight: 700;
+            color: #7FB069;
+            min-width: 60px;
+            font-size: 1.1em;
+        }
+
+        .club-status {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 700;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        }
+
+        .status-available {
+            background: linear-gradient(135deg, #4DB6AC 0%, #80CBC4 100%);
+            color: white;
+        }
+
+        .status-near-full {
+            background: linear-gradient(135deg, #FFB74D 0%, #FFA726 100%);
+            color: white;
+        }
+
+        .status-full {
+            background: linear-gradient(135deg, #EF9A9A 0%, #F48FB1 100%);
+            color: white;
+        }
+
+        .status-selected {
+            background: linear-gradient(135deg, #7FB069 0%, #9BC58A 100%);
+            color: white;
+        }
+
+        .status-disabled {
+            background: linear-gradient(135deg, #BDBDBD 0%, #E0E0E0 100%);
+            color: white;
+        }
+
+        .admin-panel, .student-panel {
+            display: none;
+        }
+
+        .admin-panel.active, .student-panel.active {
+            display: block;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #C8E6C9;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .admin-actions .btn {
+            width: auto;
+            padding: 12px 22px;
+            font-size: 15px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(127, 176, 105, 0.15);
+        }
+
+        .data-table thead {
+            background: linear-gradient(135deg, #7FB069 0%, #9BC58A 100%);
+            color: white;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 16px;
+            text-align: left;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 2px solid #E8F5E9;
+        }
+
+        .data-table tbody tr:hover {
+            background: #F1F8E9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #F1F8E9 0%, #DCEDC8 100%);
+            padding: 28px;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(127, 176, 105, 0.2);
+            text-align: center;
+            border: 3px solid #C8E6C9;
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #7FB069 0%, #9BC58A 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #558B2F;
+            margin-top: 8px;
+            font-size: 1.15em;
+            font-weight: 600;
+        }
+
+        .alert {
+            padding: 18px 22px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 1.05em;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+            color: #2E7D32;
+            border: 2px solid #81C784;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #FFCDD2 0%, #EF9A9A 100%);
+            color: #C62828;
+            border: 2px solid #EF5350;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #B3E5FC 0%, #81D4FA 100%);
+            color: #0277BD;
+            border: 2px solid #4FC3F7;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            max-width: 450px;
+            padding: 14px 22px;
+            border: 2px solid #C8E6C9;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #7FB069;
+            box-shadow: 0 0 15px rgba(127, 176, 105, 0.3);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #EF9A9A 0%, #F48FB1 100%);
+            color: white;
+            padding: 10px 22px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(239, 154, 154, 0.3);
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 154, 154, 0.4);
+        }
+
+        /* 確認選社彈出框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 25px;
+            padding: 40px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 4px solid #7FB069;
+            animation: modalSlideIn 0.4s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-icon {
+            font-size: 4.5em;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 2em;
+            color: #7FB069;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .modal-text {
+            font-size: 1.2em;
+            color: #558B2F;
+            margin-bottom: 15px;
+        }
+
+        .modal-club-name {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #4DB6AC;
+            background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%);
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: block;
+        }
+
+        .modal-warning {
+            font-size: 1.1em;
+            color: #FF9800;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn-cancel {
+            background: linear-gradient(135deg, #BDBDBD 0%, #E0E0E0 100%);
+            color: #616161;
+        }
+
+        .modal-btn-cancel:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(189, 189, 189, 0.4);
+        }
+
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #7FB069 0%, #9BC58A 100%);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(127, 176, 105, 0.4);
+        }
+
+        /* 選社成功訊息 */
+        .confirmation-box {
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+            border: 4px solid #7FB069;
+            border-radius: 20px;
+            padding: 35px;
+            text-align: center;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(127, 176, 105, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .confirmation-box h3 {
+            color: #2E7D32;
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .confirmation-box p {
+            font-size: 1.3em;
+            color: #558B2F;
+            margin-bottom: 10px;
+        }
+
+        .confirmation-box .club-name-highlight {
+            font-size: 1.6em;
+            font-weight: 700;
+            color: #4DB6AC;
+            display: block;
+            margin-top: 15px;
+            padding: 12px;
+            background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%);
+            border-radius: 15px;
+        }
+
+        .confirmation-box .icon {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .club-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .admin-actions {
+                flex-wrap: wrap;
+            }
+
+            .data-table {
+                font-size: 0.9em;
+            }
+
+            .modal-content {
+                padding: 25px;
+            }
+
+            .modal-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌿 山腳國中社團選課系統 🌿</h1>
+            <p>選擇你喜歡的社團，展開精彩的課外生活！</p>
+        </div>
+
+        <div class="content">
+            <!-- 登入表單 -->
+            <div id="loginSection" class="login-form">
+                <h2>🔐 請選擇登入方式</h2>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <button class="btn" onclick="showStudentLogin()">👨‍🎓 學生登入</button>
+                    <button class="btn" onclick="showAdminLogin()">👤 管理員登入</button>
+                </div>
+            </div>
+
+            <!-- 學生登入表單 -->
+            <div id="studentLoginForm" class="login-form hidden">
+                <h2>👨‍🎓 學生登入</h2>
+                <div class="form-group">
+                    <label>年級</label>
+                    <select id="studentGrade">
+                        <option value="">請選擇年級</option>
+                        <option value="七年級">七年級</option>
+                        <option value="八年級">八年級</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>班級</label>
+                    <select id="studentClass">
+                        <option value="">請先選擇年級</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>座號</label>
+                    <input type="text" id="studentNumber" placeholder="例如：15">
+                </div>
+                <div class="form-group">
+                    <label>姓名</label>
+                    <input type="text" id="studentName" placeholder="例如：王小明">
+                </div>
+                <button class="btn" onclick="studentLogin()">進入選課系統</button>
+                <button class="btn btn-secondary" onclick="backToMainLogin()">返回</button>
+            </div>
+
+            <!-- 管理員登入表單 -->
+            <div id="adminLoginForm" class="login-form hidden">
+                <h2>👤 管理員登入</h2>
+                <div class="form-group">
+                    <label>帳號</label>
+                    <input type="text" id="adminUsername" placeholder="請輸入帳號">
+                </div>
+                <div class="form-group">
+                    <label>密碼</label>
+                    <input type="password" id="adminPassword" placeholder="請輸入密碼">
+                </div>
+                <button class="btn" onclick="adminLogin()">登入</button>
+                <button class="btn btn-secondary" onclick="backToMainLogin()">返回</button>
+            </div>
+
+            <!-- 學生選課面板 -->
+            <div id="studentPanel" class="student-panel">
+                <div class="admin-header">
+                    <div>
+                        <h2 id="studentWelcome">歡迎，同學</h2>
+                        <p id="studentInfo" style="color: #666;"></p>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">登出</button>
+                </div>
+
+                <div id="studentAlert" class="alert"></div>
+
+                <div class="alert alert-info">
+                    <strong>📌 選課說明：</strong>每位同學只能選擇一個社團，<strong>選完後無法更改</strong>。社團人數上限為 25 人（機縫社、獨輪車社為 6 人），選滿後將無法選擇。
+                    <br><br>
+                    <strong>⚠️ 防重複機制：</strong>同年級、班級、座號只能選社一次，不能重複選社。
+                </div>
+
+                <!-- 確認選社彈出框 -->
+                <div id="confirmationModal" class="modal-overlay">
+                    <div class="modal-content">
+                        <div class="modal-icon">🤔</div>
+                        <div class="modal-title">確認選社</div>
+                        <div class="modal-text">你確定要選擇</div>
+                        <span id="modalClubName" class="modal-club-name"></span>
+                        <div class="modal-text">嗎？</div>
+                        <div class="modal-warning">⚠️ 選定後無法更改！</div>
+                        <div class="modal-buttons">
+                            <button class="modal-btn modal-btn-cancel" onclick="closeModal()">再想想</button>
+                            <button class="modal-btn modal-btn-confirm" onclick="confirmSelection()">確定選這個！</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 選社成功訊息 -->
+                <div id="confirmationBox" class="confirmation-box hidden">
+                    <div class="icon">✅</div>
+                    <h3>選社成功！</h3>
+                    <p>你已經選擇加入</p>
+                    <span id="selectedClubName" class="club-name-highlight"></span>
+                    <p style="margin-top: 20px; font-size: 1em; color: #2E7D32;">
+                        🎉 祝你社團活動愉快！
+                    </p>
+                </div>
+
+                <h3 id="clubListTitle" style="margin-bottom: 20px; color: #558B2F; font-size: 1.6em;">📚 可選社團列表</h3>
+                <div id="clubGrid" class="club-grid"></div>
+            </div>
+
+            <!-- 管理員面板 -->
+            <div id="adminPanel" class="admin-panel">
+                <div class="admin-header">
+                    <h2 style="color: #558B2F;">👤 管理員後台</h2>
+                    <div class="admin-actions">
+                        <button class="btn btn-success" onclick="exportToExcel()">📊 匯出 Excel</button>
+                        <button class="btn btn-danger" onclick="deleteAllSelections()">🗑️ 一鍵刪除</button>
+                        <button class="logout-btn" onclick="logout()">登出</button>
+                    </div>
+                </div>
+
+                <div id="adminAlert" class="alert"></div>
+
+                <!-- 統計卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalStudents">0</div>
+                        <div class="stat-label">已選課學生數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalClubs">10</div>
+                        <div class="stat-label">社團總數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="filledClubs">0</div>
+                        <div class="stat-label">已滿社團數</div>
+                    </div>
+                </div>
+
+                <!-- 搜尋 -->
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 搜尋年級、班級、姓名或座號..." oninput="filterTable()">
+                </div>
+
+                <!-- 資料表格 -->
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>年級</th>
+                            <th>班級</th>
+                            <th>座號</th>
+                            <th>姓名</th>
+                            <th>選擇社團</th>
+                            <th>選課時間</th>
+                        </tr>
+                    </thead>
+                    <tbody id="selectionTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase 設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyD0YuLv3GJIhr9rXUOFjjoyX58ulQ9V-kM",
+            authDomain: "club-selection-system.firebaseapp.com",
+            databaseURL: "https://club-selection-system-default-rtdb.firebaseio.com",
+            projectId: "club-selection-system",
+            storageBucket: "club-selection-system.firebasestorage.app",
+            messagingSenderId: "64472694372",
+            appId: "1:64472694372:web:9f31c284a2a383af522971",
+            measurementId: "G-QW834C9LBZ"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const selectionsRef = db.ref('selections');
+
+        const clubsData = [
+            { id: 1, name: '羽球社', capacity: 25, icon: '🏸' },
+            { id: 2, name: '手球社', capacity: 25, icon: '🤾' },
+            { id: 3, name: '街舞社', capacity: 25, icon: '💃' },
+            { id: 4, name: '電影欣賞社', capacity: 25, icon: '🎬' },
+            { id: 5, name: '圍棋社', capacity: 25, icon: '⚫' },
+            { id: 6, name: '熱舞社', capacity: 25, icon: '🕺' },
+            { id: 7, name: '閱讀社', capacity: 25, icon: '📚' },
+            { id: 8, name: '機縫社', capacity: 6, icon: '🧵' },
+            { id: 9, name: '時尚造型社', capacity: 25, icon: '💄' },
+            { id: 10, name: '獨輪車社', capacity: 6, icon: '🚴' }
+        ];
+
+        let selections = [];
+        let currentUser = null;
+        let hasSelected = false;
+        let selectedClubId = null;
+
+        // 年級班級選項（各 4 個班）
+        const gradeClasses = {
+            '七年級': ['1', '2', '3', '4'],
+            '八年級': ['1', '2', '3', '4']
+        };
+
+        // 年級變更時更新班級選項
+        document.getElementById('studentGrade').addEventListener('change', function() {
+            const grade = this.value;
+            const classSelect = document.getElementById('studentClass');
+            classSelect.innerHTML = '<option value="">請選擇班級</option>';
+            
+            if (grade && gradeClasses[grade]) {
+                gradeClasses[grade].forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls;
+                    option.textContent = cls + '班';
+                    classSelect.appendChild(option);
+                });
+            }
+        });
+
+        selectionsRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            selections = data ? Object.values(data) : [];
+            
+            if (currentUser && currentUser.type === 'student') {
+                checkIfAlreadySelected();
+                renderClubs();
+            } else if (currentUser && currentUser.type === 'admin') {
+                renderAdminTable();
+                updateStats();
+            }
+        });
+
+        function showAlert(elementId, message, type) {
+            const alert = document.getElementById(elementId);
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => {
+                alert.className = 'alert';
+            }, 3000);
+        }
+
+        function getClubCount(clubId) {
+            return selections.filter(s => s.clubId === clubId).length;
+        }
+
+        // 檢查是否重複選社（同年級 + 班級 + 座號）
+        function checkDuplicateSelection(grade, studentClass, studentNumber, studentName) {
+            const duplicate = selections.find(s => 
+                s.grade === grade && 
+                s.class === studentClass && 
+                s.number === studentNumber &&
+                s.name !== studentName
+            );
+            return duplicate;
+        }
+
+        function checkIfAlreadySelected() {
+            const existingSelection = selections.find(s => 
+                s.grade === currentUser.grade &&
+                s.class === currentUser.class && 
+                s.number === currentUser.number && 
+                s.name === currentUser.name
+            );
+
+            if (existingSelection) {
+                hasSelected = true;
+                showConfirmation(existingSelection.clubName);
+            } else {
+                hasSelected = false;
+                hideConfirmation();
+            }
+        }
+
+        function showConfirmation(clubName) {
+            const confirmationBox = document.getElementById('confirmationBox');
+            const selectedClubName = document.getElementById('selectedClubName');
+            const clubListTitle = document.getElementById('clubListTitle');
+            
+            selectedClubName.textContent = clubName;
+            confirmationBox.classList.remove('hidden');
+            clubListTitle.classList.add('hidden');
+        }
+
+        function hideConfirmation() {
+            const confirmationBox = document.getElementById('confirmationBox');
+            const clubListTitle = document.getElementById('clubListTitle');
+            
+            confirmationBox.classList.add('hidden');
+            clubListTitle.classList.remove('hidden');
+        }
+
+        function renderClubs() {
+            const clubGrid = document.getElementById('clubGrid');
+            clubGrid.innerHTML = '';
+
+            const currentSelection = selections.find(s => 
+                s.grade === currentUser.grade &&
+                s.class === currentUser.class && 
+                s.number === currentUser.number && 
+                s.name === currentUser.name
+            );
+
+            clubsData.forEach(club => {
+                const count = getClubCount(club.id);
+                const isFull = count >= club.capacity;
+                const isSelected = currentSelection && currentSelection.clubId === club.id;
+                const isNearFull = count >= club.capacity * 0.8 && !isFull;
+
+                const card = document.createElement('div');
+                
+                if (hasSelected) {
+                    card.className = 'club-card disabled';
+                } else {
+                    card.className = `club-card ${isFull ? 'full' : ''} ${isSelected ? 'selected' : ''}`;
+                    card.onclick = () => openModal(club.id);
+                }
+
+                let statusClass = 'status-available';
+                let statusText = '可選';
+                if (isFull) {
+                    statusClass = 'status-full';
+                    statusText = '已滿';
+                } else if (isNearFull) {
+                    statusClass = 'status-near-full';
+                    statusText = '名額緊張';
+                }
+                if (isSelected) {
+                    statusClass = 'status-selected';
+                    statusText = '已選';
+                }
+                if (hasSelected) {
+                    statusClass = 'status-disabled';
+                    statusText = '不可選';
+                }
+
+                const percentage = (count / club.capacity) * 100;
+                const fillClass = isNearFull ? 'capacity-fill near-full' : 'capacity-fill';
+
+                card.innerHTML = `
+                    <div class="club-status ${statusClass}">${statusText}</div>
+                    <div class="club-icon">${club.icon}</div>
+                    <div class="club-name">${club.name}</div>
+                    <div class="club-capacity">
+                        <div class="capacity-bar">
+                            <div class="${fillClass}" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="capacity-text">${count}/${club.capacity}</div>
+                    </div>
+                `;
+
+                clubGrid.appendChild(card);
+            });
+        }
+
+        // 開啟確認彈出框
+        function openModal(clubId) {
+            if (hasSelected) {
+                showAlert('studentAlert', '你已經選擇過社團，無法更改！', 'error');
+                return;
+            }
+
+            const club = clubsData.find(c => c.id === clubId);
+            const count = getClubCount(club.id);
+
+            if (count >= club.capacity) {
+                showAlert('studentAlert', `抱歉，${club.name} 已滿！`, 'error');
+                return;
+            }
+
+            selectedClubId = clubId;
+            const modalClubName = document.getElementById('modalClubName');
+            modalClubName.textContent = club.name + ' ' + club.icon;
+            document.getElementById('confirmationModal').classList.add('show');
+        }
+
+        // 關閉彈出框
+        function closeModal() {
+            document.getElementById('confirmationModal').classList.remove('show');
+            selectedClubId = null;
+        }
+
+        // 確認選社
+        function confirmSelection() {
+            if (!selectedClubId) return;
+
+            const club = clubsData.find(c => c.id === selectedClubId);
+            const count = getClubCount(selectedClubId);
+
+            if (count >= club.capacity) {
+                showAlert('studentAlert', `抱歉，${club.name} 已滿！`, 'error');
+                closeModal();
+                return;
+            }
+
+            const newSelection = {
+                grade: currentUser.grade,
+                class: currentUser.class,
+                number: currentUser.number,
+                name: currentUser.name,
+                clubId: selectedClubId,
+                clubName: club.name,
+                timestamp: new Date().toLocaleString('zh-TW'),
+                id: `${currentUser.grade}_${currentUser.class}_${currentUser.number}_${currentUser.name}`
+            };
+
+            selectionsRef.child(newSelection.id).set(newSelection)
+                .then(() => {
+                    hasSelected = true;
+                    renderClubs();
+                    showConfirmation(club.name);
+                    showAlert('studentAlert', `已成功選擇 ${club.name}！🎉`, 'success');
+                    closeModal();
+                })
+                .catch((error) => {
+                    console.error('寫入錯誤:', error);
+                    showAlert('studentAlert', '寫入失敗，請檢查網路連線', 'error');
+                });
+        }
+
+        function showStudentLogin() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('studentLoginForm').classList.remove('hidden');
+        }
+
+        function showAdminLogin() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminLoginForm').classList.remove('hidden');
+        }
+
+        function backToMainLogin() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('studentLoginForm').classList.add('hidden');
+            document.getElementById('adminLoginForm').classList.add('hidden');
+            hasSelected = false;
+        }
+
+        function studentLogin() {
+            const studentGrade = document.getElementById('studentGrade').value.trim();
+            const studentClass = document.getElementById('studentClass').value.trim();
+            const studentNumber = document.getElementById('studentNumber').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+
+            if (!studentGrade || !studentClass || !studentNumber || !studentName) {
+                showAlert('studentAlert', '請填寫所有欄位！', 'error');
+                return;
+            }
+
+            // 檢查是否重複選社
+            const duplicate = checkDuplicateSelection(studentGrade, studentClass, studentNumber, studentName);
+            if (duplicate) {
+                showAlert('studentAlert', `抱歉，${duplicate.grade} ${duplicate.class}班 座號 ${duplicate.number} 已經被 ${duplicate.name} 選過 ${duplicate.clubName}，不能重複選社！`, 'error');
+                return;
+            }
+
+            currentUser = {
+                type: 'student',
+                grade: studentGrade,
+                class: studentClass,
+                number: studentNumber,
+                name: studentName
+            };
+
+            document.getElementById('studentLoginForm').classList.add('hidden');
+            document.getElementById('studentPanel').classList.add('active');
+            document.getElementById('studentWelcome').textContent = `歡迎，${studentName} 同學`;
+            document.getElementById('studentInfo').textContent = `${studentGrade} ${studentClass}班 第 ${studentNumber} 號`;
+            
+            checkIfAlreadySelected();
+            renderClubs();
+        }
+
+        function adminLogin() {
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value;
+
+            if (username === 'sjjh313' && password === 'sjjh313') {
+                currentUser = { type: 'admin' };
+                document.getElementById('adminLoginForm').classList.add('hidden');
+                document.getElementById('adminPanel').classList.add('active');
+                renderAdminTable();
+                updateStats();
+            } else {
+                showAlert('adminAlert', '帳號或密碼錯誤！', 'error');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            hasSelected = false;
+            selectedClubId = null;
+            document.getElementById('studentPanel').classList.remove('active');
+            document.getElementById('adminPanel').classList.remove('active');
+            document.getElementById('studentLoginForm').classList.add('hidden');
+            document.getElementById('adminLoginForm').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('studentGrade').value = '';
+            document.getElementById('studentClass').value = '';
+            document.getElementById('studentNumber').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentClass').innerHTML = '<option value="">請先選擇年級</option>';
+            hideConfirmation();
+            closeModal();
+        }
+
+        function renderAdminTable() {
+            const table = document.getElementById('selectionTable');
+            table.innerHTML = '';
+
+            const sortedSelections = [...selections].sort((a, b) => {
+                const gradeCompare = a.grade.localeCompare(b.grade, 'zh-Hant-TW');
+                if (gradeCompare !== 0) return gradeCompare;
+                const classCompare = parseInt(a.class) - parseInt(b.class);
+                if (classCompare !== 0) return classCompare;
+                return parseInt(a.number) - parseInt(b.number);
+            });
+
+            sortedSelections.forEach((selection, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${selection.grade}</td>
+                    <td>${selection.class}班</td>
+                    <td>${selection.number}</td>
+                    <td>${selection.name}</td>
+                    <td>${selection.clubName}</td>
+                    <td>${selection.timestamp}</td>
+                `;
+                table.appendChild(row);
+            });
+
+            if (selections.length === 0) {
+                table.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">暫無選課資料</td></tr>';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalStudents').textContent = selections.length;
+            
+            const filledCount = clubsData.filter(club => getClubCount(club.id) >= club.capacity).length;
+            document.getElementById('filledClubs').textContent = filledCount;
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#selectionTable tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function exportToExcel() {
+            if (selections.length === 0) {
+                showAlert('adminAlert', '暫無資料可匯出！', 'error');
+                return;
+            }
+
+            const data = selections.map(s => ({
+                '年級': s.grade,
+                '班級': s.class + '班',
+                '座號': s.number,
+                '姓名': s.name,
+                '選擇社團': s.clubName,
+                '選課時間': s.timestamp
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '選課資料');
+
+            const fileName = `選課資料_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            showAlert('adminAlert', 'Excel 檔案已下載！', 'success');
+        }
+
+        function deleteAllSelections() {
+            if (confirm('⚠️ 確定要刪除所有學生的選課資料嗎？此操作無法復原！')) {
+                selectionsRef.remove()
+                    .then(() => {
+                        renderAdminTable();
+                        updateStats();
+                        showAlert('adminAlert', '已刪除所有選課資料！', 'success');
+                    })
+                    .catch((error) => {
+                        console.error('刪除錯誤:', error);
+                        showAlert('adminAlert', '刪除失敗，請檢查網路連線', 'error');
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
