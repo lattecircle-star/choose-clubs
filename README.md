@@ -843,7 +843,7 @@
             { id: 4, name: '電影欣賞社', capacity: 25, icon: '🎬' },
             { id: 5, name: '圍棋社', capacity: 25, icon: '⚫' },
             { id: 6, name: '熱舞社', capacity: 25, icon: '🕺' },
-            { id: 7, name: '閱讀社', capacity: 25, icon: '📚' },
+            { id: 7, name: '閱圖藝社', capacity: 25, icon: '📚' },
             { id: 8, name: '機縫社', capacity: 6, icon: '🧵' },
             { id: 9, name: '時尚造型社', capacity: 25, icon: '💄' },
             { id: 10, name: '獨輪車社', capacity: 6, icon: '🚴' }
